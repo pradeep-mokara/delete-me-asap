@@ -24,6 +24,7 @@ jobs:
           POSTGRES_PORT=5432
           REDIS_HOST=redis
           MAX_RETRIES=${{ secrets.MAX_RETRIES }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
           EOF
 
       - name: Set up Python
