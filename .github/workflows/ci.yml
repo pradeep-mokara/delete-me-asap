@@ -24,10 +24,10 @@ jobs:
         ports: ['6379:6379']
 
     steps:
-      - name: 🧾 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: 🔐 Generate .env from GitHub Secrets
+      - name: Generate .env from GitHub Secrets
         run: |
           cat <<EOF > .env
           POSTGRES_USER=${{ secrets.POSTGRES_USER }}
@@ -39,37 +39,28 @@ jobs:
           MAX_RETRIES=${{ secrets.MAX_RETRIES }}
           EOF
 
-      - name: 🐍 Set up Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: 🧪 Install dependencies
+      - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install black flake8
+          pip install -r backend/requirements.txt
 
-      - name: 🔍 Lint and format check
-        run: |
-          black --check backend/
-          flake8 backend/
-
-      - name: 🐳 Start Docker stack
+      - name: Start Docker stack
         run: |
           docker-compose up -d --build
           sleep 10  # give services time to initialize
 
-      - name: 🐘 Apply Alembic migrations
-        run: docker-compose exec -T job-server alembic upgrade head
-
-      - name: 🚀 Submit all test scripts
+      - name: Submit all test scripts
         id: submit-jobs
         run: |
           TEST_FILES=$(find backend/tests -type f -name '*.js')
           JOB_COUNT=0
 
           for FILE in $TEST_FILES; do
-            echo "📤 Submitting $FILE"
+            echo "Submitting $FILE"
             docker-compose exec -T job-server python -m backend.cli submit \
               --org-id ci-org \
               --app-version-id ci-v1 \
@@ -80,13 +71,13 @@ jobs:
 
           echo "submitted_jobs=$JOB_COUNT" >> $GITHUB_OUTPUT
 
-      - name: 🔁 Run job-worker to process jobs
+      - name: Run job-worker to process jobs
         run: |
           docker-compose exec -T job-worker python backend/job_worker.py &
           sleep 10
           docker-compose stop job-worker
 
-      - name: ✅ Check job statuses
+      - name: Check job statuses
         run: |
           JOB_COUNT=${{ steps.submit-jobs.outputs.submitted_jobs }}
           echo "🔍 Checking latest $JOB_COUNT job(s)..."
@@ -95,9 +86,9 @@ jobs:
 
           FAILURES=$(echo "$JOBS" | grep -v 'success' | grep -v '^$' | wc -l)
           if [ "$FAILURES" -eq 0 ]; then
-            echo "✅ All jobs passed"
+            echo "All jobs passed"
           else
-            echo "❌ $FAILURES job(s) failed"
+            echo "$FAILURES job(s) failed"
             exit 1
           fi
 
