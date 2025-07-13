@@ -36,7 +36,7 @@ jobs:
 
       - name: Start Docker stack
         run: |
-          docker compose up --build
+          docker compose up -d --build
           echo "Done building"
           sleep 5
 
