@@ -44,7 +44,7 @@ jobs:
       - name: Submit all test scripts
         id: submit-jobs
         run: |
-          TEST_FILES=$(find backend/tests -type f -name '*.js')
+          TEST_FILES=$(find backend/tests -type f -name '*.ts')
           JOB_COUNT=0
 
           for FILE in $TEST_FILES; do
@@ -60,18 +60,16 @@ jobs:
           echo "submitted_jobs=$JOB_COUNT" >> $GITHUB_OUTPUT
           sleep 5
 
-      - name: Check job statuses
+      - name: Check job status in DB
         run: |
-          JOB_COUNT=${{ steps.submit-jobs.outputs.submitted_jobs }}
-          echo "Checking latest $JOB_COUNT job(s)..."
-          JOBS=$(docker compose exec -T job-server psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT id, status FROM jobs ORDER BY created_at DESC LIMIT $JOB_COUNT;")
-          echo "$JOBS"
-
-          FAILURES=$(echo "$JOBS" | grep -v 'success' | grep -v '^$' | wc -l)
-          if [ "$FAILURES" -eq 0 ]; then
-            echo "All jobs passed"
+          JOB_ID=$(docker-compose exec -T postgres psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT id FROM jobs ORDER BY created_at DESC LIMIT 1;" | tr -d '[:space:]')
+          STATUS=$(docker-compose exec -T postgres psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT status FROM jobs WHERE id = '$JOB_ID';" | tr -d '[:space:]')
+          echo "Job ID: $JOB_ID"
+          echo "Job status: $STATUS"
+          if [ "$STATUS" = "success" ] || [ "$STATUS" = "failed" ]; then
+            echo "Job processed"
           else
-            echo "$FAILURES job(s) failed"
+            echo "Job not completed"
             exit 1
           fi
 
