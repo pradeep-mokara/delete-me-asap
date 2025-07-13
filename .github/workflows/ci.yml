@@ -48,7 +48,7 @@ jobs:
 
           for FILE in $TEST_FILES; do
             echo "Submitting $FILE"
-            docker-compose exec -T job-server python -m backend.cli submit \
+            docker compose exec -T job-server python -m backend.cli submit \
               --org-id ci-org \
               --app-version-id ci-v1 \
               --test-path $FILE \
@@ -63,7 +63,7 @@ jobs:
         run: |
           JOB_COUNT=${{ steps.submit-jobs.outputs.submitted_jobs }}
           echo "Checking latest $JOB_COUNT job(s)..."
-          JOBS=$(docker-compose exec -T job-server psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT id, status FROM jobs ORDER BY created_at DESC LIMIT $JOB_COUNT;")
+          JOBS=$(docker compose exec -T job-server psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT id, status FROM jobs ORDER BY created_at DESC LIMIT $JOB_COUNT;")
           echo "$JOBS"
 
           FAILURES=$(echo "$JOBS" | grep -v 'success' | grep -v '^$' | wc -l)
