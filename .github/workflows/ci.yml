@@ -43,6 +43,8 @@ jobs:
 
       - name: Submit all test scripts
         id: submit-jobs
+        env:
+          TEST_TARGET: ${{ secrets.TEST_TARGET }}
         run: |
           TEST_FILES=$(find backend/tests -type f -name '*.js')
           JOB_COUNT=0
@@ -53,7 +55,7 @@ jobs:
               --org-id ci-org \
               --app-version-id ci-v1 \
               --test-path $FILE \
-              --target ${{ secrets.TEST_TARGET }}
+              --target "$TEST_TARGET"
             JOB_COUNT=$((JOB_COUNT+1))
           done
 
