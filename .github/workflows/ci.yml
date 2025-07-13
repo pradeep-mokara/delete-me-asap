@@ -37,7 +37,7 @@ jobs:
       - name: Start Docker stack
         run: |
           docker compose up --build
-          sleep 10  # give services time to initialize
+          sleep 5
 
       - name: Submit all test scripts
         id: submit-jobs
@@ -56,12 +56,7 @@ jobs:
           done
 
           echo "submitted_jobs=$JOB_COUNT" >> $GITHUB_OUTPUT
-
-      - name: Run job-worker to process jobs
-        run: |
-          docker-compose exec -T job-worker python backend/job_worker.py &
-          sleep 10
-          docker-compose stop job-worker
+        sleep 5
 
       - name: Check job statuses
         run: |
