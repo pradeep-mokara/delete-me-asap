@@ -55,7 +55,7 @@ jobs:
               --org-id ci-org \
               --app-version-id ci-v1 \
               --test-path $FILE \
-              --target $TEST_TARGET
+              --target dummy
             JOB_COUNT=$((JOB_COUNT+1))
           done
 
