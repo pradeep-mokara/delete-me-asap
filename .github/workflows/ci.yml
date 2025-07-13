@@ -76,5 +76,5 @@ jobs:
           fi
 
       - name: Clean up
-        run: docker-compose down -v
+        run: docker compose down -v
 
