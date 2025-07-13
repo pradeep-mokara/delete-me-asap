@@ -50,7 +50,7 @@ jobs:
 
       - name: Start Docker stack
         run: |
-          docker-compose up -d --build
+          docker compose up --build
           sleep 10  # give services time to initialize
 
       - name: Submit all test scripts
