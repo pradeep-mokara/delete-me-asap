@@ -62,8 +62,8 @@ jobs:
 
       - name: Check job status in DB
         run: |
-          JOB_ID=$(docker-compose exec -T postgres psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT id FROM jobs ORDER BY created_at DESC LIMIT 1;" | tr -d '[:space:]')
-          STATUS=$(docker-compose exec -T postgres psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT status FROM jobs WHERE id = '$JOB_ID';" | tr -d '[:space:]')
+          JOB_ID=$(docker compose exec -T postgres psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT id FROM jobs ORDER BY created_at DESC LIMIT 1;" | tr -d '[:space:]')
+          STATUS=$(docker compose exec -T postgres psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT status FROM jobs WHERE id = '$JOB_ID';" | tr -d '[:space:]')
           echo "Job ID: $JOB_ID"
           echo "Job status: $STATUS"
           if [ "$STATUS" = "success" ] || [ "$STATUS" = "failed" ]; then
