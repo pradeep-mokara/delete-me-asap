@@ -25,6 +25,8 @@ jobs:
           REDIS_HOST=redis
           MAX_RETRIES=${{ secrets.MAX_RETRIES }}
           DATABASE_URL=${{ secrets.DATABASE_URL }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          QG_API_URL=${{ secrets.QG_API_URL }}
           EOF
 
       - name: Set up Python
