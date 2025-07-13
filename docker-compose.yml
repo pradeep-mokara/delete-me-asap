@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: qg_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+  redis:
+    image: redis:7
+    container_name: qg_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  job-server:
+    build:
+      context: .
+    container_name: qg_job_server
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+
+  job-worker:
+    build:
+      context: .
+    container_name: qg_job_worker
+    depends_on:
+      - job-server
+      - postgres
+      - redis
+    env_file:
+      - .env
+    entrypoint: ["python", "-u", "backend/job_worker.py"]
+    volumes:
+      - ./backend:/app/backend
+      - ./tests:/app/tests
+
+volumes:
+  postgres_data:
+

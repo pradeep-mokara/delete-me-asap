@@ -1,0 +1,106 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        ports: ['5432:5432']
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+
+    steps:
+      - name: 🧾 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🔐 Generate .env from GitHub Secrets
+        run: |
+          cat <<EOF > .env
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          POSTGRES_HOST=postgres
+          POSTGRES_PORT=5432
+          REDIS_HOST=redis
+          MAX_RETRIES=${{ secrets.MAX_RETRIES }}
+          EOF
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 🧪 Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install black flake8
+
+      - name: 🔍 Lint and format check
+        run: |
+          black --check backend/
+          flake8 backend/
+
+      - name: 🐳 Start Docker stack
+        run: |
+          docker-compose up -d --build
+          sleep 10  # give services time to initialize
+
+      - name: 🐘 Apply Alembic migrations
+        run: docker-compose exec -T job-server alembic upgrade head
+
+      - name: 🚀 Submit all test scripts
+        id: submit-jobs
+        run: |
+          TEST_FILES=$(find backend/tests -type f -name '*.js')
+          JOB_COUNT=0
+
+          for FILE in $TEST_FILES; do
+            echo "📤 Submitting $FILE"
+            docker-compose exec -T job-server python -m backend.cli submit \
+              --org-id ci-org \
+              --app-version-id ci-v1 \
+              --test-path $FILE \
+              --target ${{ secrets.TEST_TARGET }}
+            JOB_COUNT=$((JOB_COUNT+1))
+          done
+
+          echo "submitted_jobs=$JOB_COUNT" >> $GITHUB_OUTPUT
+
+      - name: 🔁 Run job-worker to process jobs
+        run: |
+          docker-compose exec -T job-worker python backend/job_worker.py &
+          sleep 10
+          docker-compose stop job-worker
+
+      - name: ✅ Check job statuses
+        run: |
+          JOB_COUNT=${{ steps.submit-jobs.outputs.submitted_jobs }}
+          echo "🔍 Checking latest $JOB_COUNT job(s)..."
+          JOBS=$(docker-compose exec -T job-server psql -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }} -t -c "SELECT id, status FROM jobs ORDER BY created_at DESC LIMIT $JOB_COUNT;")
+          echo "$JOBS"
+
+          FAILURES=$(echo "$JOBS" | grep -v 'success' | grep -v '^$' | wc -l)
+          if [ "$FAILURES" -eq 0 ]; then
+            echo "✅ All jobs passed"
+          else
+            echo "❌ $FAILURES job(s) failed"
+            exit 1
+          fi
+
+      - name: 🧹 Clean up
+        run: docker-compose down -v
+
