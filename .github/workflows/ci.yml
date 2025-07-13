@@ -27,6 +27,7 @@ jobs:
           DATABASE_URL=${{ secrets.DATABASE_URL }}
           REDIS_URL=${{ secrets.REDIS_URL }}
           QG_API_URL=${{ secrets.QG_API_URL }}
+          TEST_TARGET=${{ secrets.TEST_TARGET }}
           EOF
 
       - name: Set up Python
