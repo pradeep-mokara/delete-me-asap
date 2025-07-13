@@ -44,7 +44,7 @@ jobs:
       - name: Submit all test scripts
         id: submit-jobs
         run: |
-          TEST_FILES=$(find backend/tests -type f -name '*.ts')
+          TEST_FILES=$(find backend/tests -type f -name '*.js')
           JOB_COUNT=0
 
           for FILE in $TEST_FILES; do
